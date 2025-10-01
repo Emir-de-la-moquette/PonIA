@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS courses (
 
 CREATE TABLE IF NOT EXISTS horses (
     horse_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    numPmu INTEGER UNIQUE,
-    nom TEXT,
+    numPmu INTEGER,
+    nom TEXT UNIQUE,
     age INTEGER,
     sexe TEXT
 );
@@ -90,7 +90,9 @@ def safe_get(url):
         return None
 
 def get_or_create_horse(numPmu, nom, age, sexe):
-    cur.execute("SELECT horse_id FROM horses WHERE numPmu=?", (numPmu,))
+    if not nom:  # sécurité
+        return None
+    cur.execute("SELECT horse_id FROM horses WHERE nom=?", (nom,))
     res = cur.fetchone()
     if res:
         return res[0]
@@ -98,6 +100,7 @@ def get_or_create_horse(numPmu, nom, age, sexe):
                 (numPmu, nom, age, sexe))
     conn.commit()
     return cur.lastrowid
+
 
 def get_or_create_trainer(nom):
     cur.execute("SELECT trainer_id FROM trainers WHERE nom=?", (nom,))
