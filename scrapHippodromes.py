@@ -103,8 +103,10 @@ def process_federation_data(conn, fed_code):
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+        print(response)
         data = response.json()
-        race_courses = data.get('raceCourses')
+        # print(data)
+        race_courses = data.get('raceCourses', [])
         print(race_courses)
     except requests.RequestException as e:
         print(f"Erreur lors de la récupération de la fédération '{fed_code}': {e}")
