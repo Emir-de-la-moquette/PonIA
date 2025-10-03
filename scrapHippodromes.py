@@ -4,7 +4,7 @@ import json
 
 # --- Configuration ---
 DATABASE_FILE = 'pmu.sqlite'
-FEDERATION_CODES = ['haute-normandie']  # Liste brute des fédérations à traiter
+FEDERATION_CODES =  ['haute-normandie', 'anjou-maine', 'nord', 'basse-normandie', 'ouest', 'est', 'centre-est', 'sud-ouest', 'sud-est', 'corse'] #['haute-normandie']
 BASE_API_URL = 'https://regions-api.equidia.fr'
 
 # --- Fonctions d'aide à l'extraction ---
@@ -39,9 +39,22 @@ def extract_corde(string_data):
     """Détermine la corde (main) de la piste."""
     if string_data.get('left'):
         return 'Gauche'
-    elif string_data.get('right'):
+    if string_data.get('right'):
         return 'Droite'
     return 'Non spécifié'
+
+def extract_terrain(string_data):
+    """Détermine la corde (main) de la piste."""
+    terrains = []
+    if string_data.get('grass'):
+        terrains.append("TURF")
+    if string_data.get('sand'):
+        terrains.append("SABLE")
+    if string_data.get('psf'):
+        terrains.append("PSF")
+    if len(terrains)==0:
+        terrains.append("AUTRE")
+    return '; '.join(terrains)
 
 # --- Fonctions principales de la BD ---
 
@@ -54,6 +67,7 @@ def setup_database(conn):
     new_columns = [
         ('ville', 'TEXT'),
         ('types_piste', 'TEXT'),
+        ('terrains', 'TEXT'),
         ('longueurs_pistes', 'TEXT'),
         ('corde', 'TEXT'),
     ]
@@ -105,8 +119,10 @@ def process_federation_data(conn, fed_code):
         response.raise_for_status()
         print(response)
         data = response.json()
-        # print(data)
-        race_courses = data.get('raceCourses', [])
+        data = data.get('federation')
+        print(data)
+        print(type(data))
+        race_courses = data.get('raceCourses')
         print(race_courses)
     except requests.RequestException as e:
         print(f"Erreur lors de la récupération de la fédération '{fed_code}': {e}")
@@ -143,15 +159,16 @@ def process_federation_data(conn, fed_code):
             types_piste = extract_disciplines(details.get('discipline', {}))
             longueurs_pistes = extract_track_lengths(details.get('distance', {}))
             corde = extract_corde(details.get('string', {}))
+            terrains = extract_terrain(details)
             
             # Mise à jour dans la BD
             cursor.execute(
                 """
                 UPDATE hippodromes
-                SET ville = ?, types_piste = ?, longueurs_pistes = ?, corde = ?
+                SET ville = ?, types_piste = ?, terrains = ?, longueurs_pistes = ?, corde = ?
                 WHERE code = ?
                 """,
-                (ville, types_piste, longueurs_pistes, corde, code)
+                (ville, types_piste, terrains, longueurs_pistes, corde, code)
             )
             print(f"    [MISE À JOUR] Détails enrichis pour : {code} (Ville: {ville}, Corde: {corde})")
         else:

@@ -24,15 +24,18 @@ CREATE TABLE IF NOT EXISTS hippodromes (
 CREATE TABLE IF NOT EXISTS courses (
     course_id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT,
-    reunion TEXT,
+    categorie TEXT,
     course_externe TEXT,
     libelle TEXT,
     hippodrome_id INTEGER,
+    terrain_id INTEGER,
     discipline TEXT,
+    specialite TEXT,
     distance INTEGER,
     heure_depart INTEGER,
     nombre_declares INTEGER,
     FOREIGN KEY(hippodrome_id) REFERENCES hippodromes(id)
+    FOREIGN KEY(terrain_id) REFERENCES terrain(id)
 );
 
 CREATE TABLE IF NOT EXISTS horses (
@@ -51,6 +54,12 @@ CREATE TABLE IF NOT EXISTS trainers (
 CREATE TABLE IF NOT EXISTS drivers (
     driver_id INTEGER PRIMARY KEY AUTOINCREMENT,
     nom TEXT UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS terrain (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT,
+    etat TEXT
 );
 
 CREATE TABLE IF NOT EXISTS participants (
@@ -130,6 +139,23 @@ def get_or_create_hippodrome(code, libCourt, libLong):
     conn.commit()
     return cur.lastrowid
 
+
+def get_hippodrome(id):
+    cur.execute("SELECT * FROM hippodromes WHERE id=?", (id,))
+    res = cur.fetchone()
+    if res:
+        return res
+
+def get_or_create_terrain(type, etat):
+    cur.execute("SELECT id FROM terrain WHERE type=? AND etat=?", (type, etat))
+    res = cur.fetchone()
+    if res:
+        return res[0]
+    cur.execute("INSERT INTO terrain (type, etat) VALUES (?, ?)",
+                (type, etat))
+    conn.commit()
+    return cur.lastrowid
+
 # -------------------- MAIN PROCESS -------------------- #
 def process_date(date_str):
     print(f"\n=== Traitement du {date_str} ===")
@@ -156,20 +182,55 @@ def process_date(date_str):
         print(f"-- Réunion R{numR} ({hippo.get('libelleCourt')}) --")
 
         courses = reunion.get("courses", [])
-        for course in courses:
+        for course in courses:                              # A MODIFIER AVEC LES COLONES MODIFIEE
+
+            penetre = course.get("penetrometre", {})
+            etat = penetre.get("intitule")
+            if etat is None or etat == "":
+                etat = "Bon"
+
+            piste = course.get("typePiste")
+            if piste is None or piste == "":
+                terrain_hippo = get_hippodrome(hipp_id)[6]
+                print(terrain_hippo)
+                if terrain_hippo is None or terrain_hippo == "":
+                    piste = "TURF"
+                    if "PSF" in etat:
+                        piste = "PSF"
+                else :
+                    piste = terrain_hippo.split(';')[0]
+                print(piste)
+
+            terrain = get_or_create_terrain(piste, etat)
+
+
+            condition = str(course.get("conditions")).lower()
+            if("groupe iii" in condition or "course c" in condition):
+                categorie = "GROUPE III"
+            elif("groupe ii" in condition or "course b" in condition):
+                categorie = "GROUPE II"
+            elif("groupe i" in condition or "course a" in condition):
+                categorie = "GROUPE I"
+            elif("course euro" in condition):
+                categorie = "course europeenne"
+            else:
+                categorie = "course mineure"
+
+
             course_id_externe = course.get("numExterne")
             libelle = course.get("libelle")
             discipline = course.get("discipline")
+            specialite = course.get("specialite")
             distance = course.get("distance")
             heure_depart = course.get("heureDepart")
             nombre_declares = course.get("nombreDeclaresPartants")
 
             cur.execute("""INSERT INTO courses
-                (date, reunion, course_externe, libelle, hippodrome_id,
-                discipline, distance, heure_depart, nombre_declares)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (date_str, numR, course_id_externe, libelle, hipp_id,
-                discipline, distance, heure_depart, nombre_declares)
+                (date, categorie, course_externe, libelle, hippodrome_id, terrain_id,
+                discipline, specialite, distance, heure_depart, nombre_declares)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (date_str, categorie, course_id_externe, libelle, hipp_id, terrain,
+                discipline, specialite, distance, heure_depart, nombre_declares)
             )
             conn.commit()
             course_db_id = cur.lastrowid
