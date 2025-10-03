@@ -40,7 +40,6 @@ CREATE TABLE IF NOT EXISTS courses (
 
 CREATE TABLE IF NOT EXISTS horses (
     horse_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    numPmu INTEGER,
     nom TEXT UNIQUE,
     age INTEGER,
     sexe TEXT
@@ -98,15 +97,15 @@ def safe_get(url):
         print(f"[EXCEPTION] {url} -> {e}")
         return None
 
-def get_or_create_horse(numPmu, nom, age, sexe):
+def get_or_create_horse(nom, age, sexe):
     if not nom:  # sécurité
         return None
     cur.execute("SELECT horse_id FROM horses WHERE nom=?", (nom,))
     res = cur.fetchone()
     if res:
         return res[0]
-    cur.execute("INSERT INTO horses (numPmu, nom, age, sexe) VALUES (?, ?, ?, ?)",
-                (numPmu, nom, age, sexe))
+    cur.execute("INSERT INTO horses (nom, age, sexe) VALUES (?, ?, ?)",
+                (nom, age, sexe))
     conn.commit()
     return cur.lastrowid
 
@@ -211,8 +210,8 @@ def process_date(date_str):
                 categorie = "GROUPE II"
             elif("groupe i" in condition or "course a" in condition):
                 categorie = "GROUPE I"
-            elif("course euro" in condition):
-                categorie = "course europeenne"
+            # elif("course euro" in condition):
+            #     categorie = "course europeenne"
             else:
                 categorie = "course mineure"
 
@@ -245,7 +244,7 @@ def process_date(date_str):
                 continue
 
             for p in p_data.get("participants", []):
-                horse_id = get_or_create_horse(p.get("numPmu"), p.get("nom"), p.get("age"), p.get("sexe"))
+                horse_id = get_or_create_horse(p.get("nom"), p.get("age"), p.get("sexe"))
                 trainer_id = get_or_create_trainer(p.get("entraineur"))
                 driver_id = get_or_create_driver(p.get("driver"))
 
