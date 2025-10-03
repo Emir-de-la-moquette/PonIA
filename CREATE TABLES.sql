@@ -2,7 +2,12 @@ CREATE TABLE IF NOT EXISTS hippodromes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT UNIQUE,
     libelleCourt TEXT,
-    libelleLong TEXT
+    libelleLong TEXT,
+    ville TEXT,
+    types_piste TEXT,
+    terrains TEXT,
+    longueurs_pistes TEXT,
+    corde TEXT,
 );
 
 CREATE TABLE IF NOT EXISTS courses (
@@ -17,6 +22,7 @@ CREATE TABLE IF NOT EXISTS courses (
     specialite TEXT,
     distance INTEGER,
     heure_depart INTEGER,
+    duree INTEGER,
     nombre_declares INTEGER,
     FOREIGN KEY(hippodrome_id) REFERENCES hippodromes(id)
     FOREIGN KEY(terrain_id) REFERENCES terrain(id)
@@ -24,7 +30,6 @@ CREATE TABLE IF NOT EXISTS courses (
 
 CREATE TABLE IF NOT EXISTS horses (
     horse_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    numPmu INTEGER,
     nom TEXT UNIQUE,
     age INTEGER,
     sexe TEXT

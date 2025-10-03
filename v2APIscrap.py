@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS courses (
     specialite TEXT,
     distance INTEGER,
     heure_depart INTEGER,
+    duree INTEGER,
     nombre_declares INTEGER,
     FOREIGN KEY(hippodrome_id) REFERENCES hippodromes(id)
     FOREIGN KEY(terrain_id) REFERENCES terrain(id)
@@ -221,15 +222,16 @@ def process_date(date_str):
             discipline = course.get("discipline")
             specialite = course.get("specialite")
             distance = course.get("distance")
+            duree = course.get("dureeCourse")
             heure_depart = course.get("heureDepart")
             nombre_declares = course.get("nombreDeclaresPartants")
 
             cur.execute("""INSERT INTO courses
                 (date, categorie, course_externe, libelle, hippodrome_id, terrain_id,
-                discipline, specialite, distance, heure_depart, nombre_declares)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                discipline, specialite, distance, heure_depart, duree, nombre_declares)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (date_str, categorie, course_id_externe, libelle, hipp_id, terrain,
-                discipline, specialite, distance, heure_depart, nombre_declares)
+                discipline, specialite, distance, heure_depart, duree, nombre_declares)
             )
             conn.commit()
             course_db_id = cur.lastrowid
@@ -250,12 +252,16 @@ def process_date(date_str):
 
                 ordre = p.get("ordreArrivee")
                 temps = p.get("tempsObtenu")
+                if temps is None and ordre == 1:
+                    temps = duree
                 rap_direct = (p.get("dernierRapportDirect") or {}).get("rapport")
                 rap_ref = (p.get("dernierRapportReference") or {}).get("rapport")
                 courses_courues = p.get("nombreCourses")
                 courses_gagnees = p.get("nombreVictoires")
                 courses_placees = p.get("nombrePlaces")
                 distance_reelle = p.get("handicapDistance")
+                if distance_reelle is None:
+                    distance_reelle = distance
                 disqualifie = p.get("incident") == "DISQUALIFIE_POUR_ALLURE_IRREGULIERE"
 
                 cur.execute("""
